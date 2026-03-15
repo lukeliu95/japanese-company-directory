@@ -6,6 +6,7 @@
 import { getAllIndustries } from '@/lib/queries';
 import db from '@/lib/db';
 
+export const dynamic = 'force-dynamic';
 export const revalidate = 86400;
 
 function getBaseUrl(): string {

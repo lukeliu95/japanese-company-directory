@@ -28,18 +28,6 @@ interface PageProps {
   searchParams: Promise<{ page?: string }>;
 }
 
-// ---- Static params: all prefecture slugs + all industry slugs ----
-export async function generateStaticParams() {
-  const params: { slug: string }[] = [];
-  for (const p of PREFECTURES) {
-    params.push({ slug: p.slug });
-  }
-  for (const i of INDUSTRIES) {
-    params.push({ slug: i.slug });
-  }
-  return params;
-}
-
 // ---- Metadata ----
 export async function generateMetadata({
   params,

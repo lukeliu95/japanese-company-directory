@@ -1,0 +1,7 @@
+*.db
+*.db.zip
+scripts/
+ceo-rounds/
+DB/
+.env
+.env.local
