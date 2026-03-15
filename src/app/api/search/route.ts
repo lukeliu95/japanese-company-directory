@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { searchCompanies } from '@/lib/queries';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
   const q = searchParams.get('q') ?? '';
