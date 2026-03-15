@@ -19,6 +19,7 @@ import Breadcrumb from '@/components/Breadcrumb';
 import IndustryList from '@/components/IndustryList';
 import JsonLd from '@/components/JsonLd';
 
+export const dynamic = 'force-dynamic';
 export const revalidate = 86400;
 
 interface PageProps {

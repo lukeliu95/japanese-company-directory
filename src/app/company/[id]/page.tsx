@@ -9,6 +9,7 @@ import {
 import Breadcrumb from '@/components/Breadcrumb';
 import JsonLd from '@/components/JsonLd';
 
+export const dynamic = 'force-dynamic';
 export const revalidate = 604800;
 
 function parseJsonArray(raw: string | null): string[] {

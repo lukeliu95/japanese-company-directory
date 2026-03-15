@@ -7,6 +7,7 @@ import IndustryList from '@/components/IndustryList';
 import CompanyTable from '@/components/CompanyTable';
 import JsonLd from '@/components/JsonLd';
 
+export const dynamic = 'force-dynamic';
 export const revalidate = 86400;
 
 export const metadata: Metadata = {
