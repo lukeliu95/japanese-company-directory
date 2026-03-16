@@ -35,8 +35,13 @@ export async function query<T = Record<string, unknown>>(
   sql: string,
   params: any[] = [],
 ): Promise<T[]> {
-  const [rows] = await pool.query(sql, params);
-  return rows as T[];
+  try {
+    const [rows] = await pool.query(sql, params);
+    return rows as T[];
+  } catch (err) {
+    console.error('[DB] Query error:', err, { sql: sql.slice(0, 200), params });
+    throw err;
+  }
 }
 
 export default pool;

@@ -14,44 +14,56 @@ export default function SearchBox({
 }: SearchBoxProps) {
   const router = useRouter();
   const [query, setQuery] = useState(defaultValue);
+  const [showEmptyError, setShowEmptyError] = useState(false);
 
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const trimmed = query.trim();
-    if (!trimmed) return;
+    if (!trimmed) {
+      setShowEmptyError(true);
+      return;
+    }
+    setShowEmptyError(false);
     router.push(`/search?q=${encodeURIComponent(trimmed)}`);
   }
 
   const isLarge = size === "lg";
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      role="search"
-      aria-label="会社検索"
-      className={`flex w-full mx-auto ${isLarge ? "max-w-2xl" : "max-w-md"}`}
-    >
-      <label htmlFor="search-input" className="sr-only">
-        検索キーワード
-      </label>
-      <input
-        id="search-input"
-        type="text"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        placeholder="会社名・キーワードで検索"
-        className={`flex-1 rounded-l-lg border border-r-0 border-slate-300 bg-white text-slate-800 placeholder-slate-400 outline-none transition-colors focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 ${
-          isLarge ? "px-5 py-3 text-base" : "px-3 py-2 text-sm"
-        }`}
-      />
-      <button
-        type="submit"
-        className={`shrink-0 rounded-r-lg bg-blue-600 font-medium text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600/20 ${
-          isLarge ? "px-6 py-3 text-base" : "px-4 py-2 text-sm"
-        }`}
+    <div className={`w-full mx-auto ${isLarge ? "max-w-2xl" : "max-w-md"}`}>
+      <form
+        onSubmit={handleSubmit}
+        role="search"
+        aria-label="会社検索"
+        className="flex w-full"
       >
-        検索
-      </button>
-    </form>
+        <label htmlFor="search-input" className="sr-only">
+          検索キーワード
+        </label>
+        <input
+          id="search-input"
+          type="text"
+          value={query}
+          onChange={(e) => { setQuery(e.target.value); if (showEmptyError) setShowEmptyError(false); }}
+          placeholder="会社名・キーワードで検索"
+          className={`flex-1 rounded-l-lg border border-r-0 border-slate-300 bg-white text-slate-800 placeholder-slate-400 outline-none transition-colors focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 ${
+            isLarge ? "px-5 py-3 text-base" : "px-3 py-2 text-sm"
+          }`}
+        />
+        <button
+          type="submit"
+          className={`shrink-0 rounded-r-lg bg-blue-600 font-medium text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600/20 ${
+            isLarge ? "px-6 py-3 text-base" : "px-4 py-2 text-sm"
+          }`}
+        >
+          検索
+        </button>
+      </form>
+      {showEmptyError && (
+        <p className="mt-1.5 text-xs text-red-500 text-center" role="alert">
+          検索キーワードを入力してください
+        </p>
+      )}
+    </div>
   );
 }

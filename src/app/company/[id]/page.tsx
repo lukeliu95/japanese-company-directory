@@ -42,7 +42,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     ? `${name}の企業情報。${company.summary.slice(0, 100)}。${parts.join('・')}。`
     : `${name}の企業情報。${parts.join('・')}。会社概要・業界・所在地を掲載。`;
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://example.com';
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://japanese-company-directory.vercel.app';
   const locSuffix = loc ? `(${loc})` : '';
   return {
     title: `${name}${locSuffix} - 会社概要・企業情報`,
@@ -70,7 +70,7 @@ export default async function CompanyDetailPage({ params }: PageProps) {
   const prefectureName = company.prefecture_slug
     ? PREFECTURE_BY_SLUG.get(company.prefecture_slug)
     : null;
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://example.com';
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://japanese-company-directory.vercel.app';
 
   // Breadcrumb
   const crumbs: { label: string; href?: string }[] = [

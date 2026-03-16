@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import './globals.css';
 import { PREFECTURES, INDUSTRIES } from '@/lib/slugs';
+import SearchBox from '@/components/SearchBox';
 
 const notoSansJP = Noto_Sans_JP({
   variable: '--font-noto-sans-jp',
@@ -49,9 +50,15 @@ export default function RootLayout({
                 priority
               />
             </Link>
+            {/* Desktop: inline search box */}
+            <div className="hidden sm:block w-56 md:w-72">
+              <SearchBox size="sm" />
+            </div>
+            {/* Mobile: icon link to search page */}
             <Link
               href="/search"
-              className="flex items-center gap-2 rounded-lg border border-slate-300 bg-slate-50 px-3 py-1.5 text-sm text-slate-500 transition-colors hover:border-blue-400 hover:text-slate-700"
+              className="sm:hidden flex items-center gap-2 rounded-lg border border-slate-300 bg-slate-50 px-3 py-1.5 text-sm text-slate-500 transition-colors hover:border-blue-400 hover:text-slate-700"
+              aria-label="検索"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -67,7 +74,7 @@ export default function RootLayout({
                   d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                 />
               </svg>
-              企業を検索
+              検索
             </Link>
           </div>
         </header>

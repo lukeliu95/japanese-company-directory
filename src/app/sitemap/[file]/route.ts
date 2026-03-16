@@ -14,7 +14,7 @@ const TABLE = 'enterprise_baseconnect_in';
 const HAS_NAME = "company_name IS NOT NULL AND company_name != ''";
 
 function getBaseUrl(): string {
-  return process.env.NEXT_PUBLIC_SITE_URL ?? 'https://example.com';
+  return process.env.NEXT_PUBLIC_SITE_URL ?? 'https://japanese-company-directory.vercel.app';
 }
 
 /**

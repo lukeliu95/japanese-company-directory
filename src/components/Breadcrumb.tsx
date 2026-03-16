@@ -13,7 +13,7 @@ interface BreadcrumbProps {
 export default function Breadcrumb({ items }: BreadcrumbProps) {
   if (items.length === 0) return null;
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://example.com';
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://japanese-company-directory.vercel.app';
   const jsonLdData = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",

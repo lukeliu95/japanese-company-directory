@@ -24,6 +24,7 @@ import type {
 
 const TABLE = 'enterprise_baseconnect_in';
 const DEFAULT_PER_PAGE = 50;
+const MAX_PAGE = 500; // Prevent OFFSET DoS (500 × 50 = 25,000 max row offset)
 const HAS_NAME = "company_name IS NOT NULL AND company_name != ''";
 // Guard against malformed JSON in industry_tags before using JSON functions
 const VALID_JSON_TAGS = "industry_tags IS NOT NULL AND JSON_VALID(industry_tags)";
@@ -56,7 +57,7 @@ function paginate<T>(
 }
 
 function pageOffset(page: number, perPage: number): { offset: number; safePage: number } {
-  const safePage = Math.max(1, page);
+  const safePage = Math.min(Math.max(1, page), MAX_PAGE);
   return { offset: (safePage - 1) * perPage, safePage };
 }
 

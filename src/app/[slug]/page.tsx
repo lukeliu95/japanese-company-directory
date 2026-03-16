@@ -201,6 +201,16 @@ async function PrefecturePage({
 
         {/* Company table */}
         <div className="order-1 lg:order-2 lg:col-span-2">
+          {/* Mobile-only top pagination */}
+          {companiesResult.totalPages > 1 && (
+            <div className="lg:hidden mb-3">
+              <Pagination
+                currentPage={page}
+                totalPages={companiesResult.totalPages}
+                basePath={`/${slug}`}
+              />
+            </div>
+          )}
           <div className="rounded-lg border border-slate-200 bg-white p-4">
             <CompanyTable companies={companiesResult.items} />
           </div>
@@ -283,12 +293,9 @@ async function IndustryPage({
                   <li key={pref.slug}>
                     <Link
                       href={`/${pref.slug}/${slug}`}
-                      className="flex items-center justify-between px-4 py-2.5 text-sm transition-colors hover:bg-slate-50"
+                      className="block px-4 py-2.5 text-sm text-slate-700 transition-colors hover:bg-slate-50"
                     >
-                      <span className="text-slate-700">{pref.name_ja}</span>
-                      <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500">
-                        {pref.company_count.toLocaleString()}社
-                      </span>
+                      {pref.name_ja}
                     </Link>
                   </li>
                 ))}
@@ -299,6 +306,16 @@ async function IndustryPage({
 
         {/* Company table */}
         <div className="order-1 lg:order-2 lg:col-span-2">
+          {/* Mobile-only top pagination */}
+          {companiesResult.totalPages > 1 && (
+            <div className="lg:hidden mb-3">
+              <Pagination
+                currentPage={page}
+                totalPages={companiesResult.totalPages}
+                basePath={`/${slug}`}
+              />
+            </div>
+          )}
           <div className="rounded-lg border border-slate-200 bg-white p-4">
             <CompanyTable companies={companiesResult.items} />
           </div>
