@@ -5,6 +5,7 @@
 
 import { query } from '@/lib/db';
 
+export const dynamic = 'force-dynamic';
 export const revalidate = 86400;
 
 const BATCH_SIZE = 50000;

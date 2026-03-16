@@ -5,6 +5,7 @@
 
 import { getCachedPrefectures, getCachedCitiesByPrefecture } from '@/lib/queries';
 
+export const dynamic = 'force-dynamic';
 export const revalidate = 86400;
 
 function getBaseUrl(): string {
