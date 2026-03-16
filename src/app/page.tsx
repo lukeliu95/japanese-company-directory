@@ -8,8 +8,7 @@ import IndustryList from '@/components/IndustryList';
 import CompanyTable from '@/components/CompanyTable';
 import JsonLd from '@/components/JsonLd';
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 86400;
+export const revalidate = 3600;
 
 export const metadata: Metadata = {
   title: 'GBase GTM - 全国100万社の企業情報',
@@ -30,7 +29,7 @@ export default async function HomePage() {
     name_ja: PREFECTURE_BY_SLUG.get(p.slug) ?? p.slug,
   }));
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://example.com';
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://japanese-company-directory.vercel.app';
 
   const jsonLdWebsite = {
     '@context': 'https://schema.org',

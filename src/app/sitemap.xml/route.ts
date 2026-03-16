@@ -5,13 +5,12 @@
 
 import { query } from '@/lib/db';
 
-export const dynamic = 'force-dynamic';
 export const revalidate = 86400;
 
 const BATCH_SIZE = 50000;
 
 function getBaseUrl(): string {
-  return process.env.NEXT_PUBLIC_SITE_URL ?? 'https://example.com';
+  return process.env.NEXT_PUBLIC_SITE_URL ?? 'https://japanese-company-directory.vercel.app';
 }
 
 export async function GET(): Promise<Response> {

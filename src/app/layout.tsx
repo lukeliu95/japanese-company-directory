@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Noto_Sans_JP } from 'next/font/google';
+import Image from 'next/image';
 import Link from 'next/link';
 import './globals.css';
 import { PREFECTURES, INDUSTRIES } from '@/lib/slugs';
@@ -12,6 +13,9 @@ const notoSansJP = Noto_Sans_JP({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL ?? 'https://japanese-company-directory.vercel.app',
+  ),
   title: {
     template: '%s | GBase GTM',
     default: 'GBase GTM - 全国100万社の企業情報',
@@ -36,10 +40,13 @@ export default function RootLayout({
         <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur-sm">
           <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
             <Link href="/" className="block">
-              <img
+              <Image
                 src="https://s.gbase.ai/logo.png"
                 alt="GBase GTM"
-                className="h-7"
+                width={120}
+                height={28}
+                className="h-7 w-auto"
+                priority
               />
             </Link>
             <Link

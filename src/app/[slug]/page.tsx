@@ -13,6 +13,8 @@ import {
   PREFECTURE_SLUGS,
   PREFECTURE_BY_SLUG,
   INDUSTRY_BY_SLUG,
+  PREFECTURES,
+  INDUSTRIES,
 } from '@/lib/slugs';
 import CompanyTable from '@/components/CompanyTable';
 import Pagination from '@/components/Pagination';
@@ -22,6 +24,13 @@ import JsonLd from '@/components/JsonLd';
 import { prefectureMeta, industryMeta } from '@/lib/seo';
 
 export const revalidate = 86400;
+
+export function generateStaticParams() {
+  return [
+    ...PREFECTURES.map((p) => ({ slug: p.slug })),
+    ...INDUSTRIES.map((i) => ({ slug: i.slug })),
+  ];
+}
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -45,11 +54,18 @@ export async function generateMetadata({
     const prefectures = await getCachedPrefectures();
     const total = prefectures.find((p) => p.slug === slug)?.company_count ?? 0;
     const meta = prefectureMeta(prefectureName, total);
+    const title = page > 1 ? `${prefectureName}の企業一覧 (${page}ページ目)` : meta.title;
     return {
-      title: page > 1 ? `${prefectureName}の企業一覧 (${page}ページ目)` : meta.title,
+      title,
       description: meta.description,
       ...(page > 1 ? { robots: { index: false, follow: true } } : {}),
       alternates: { canonical: `/${slug}` },
+      openGraph: {
+        title,
+        description: meta.description,
+        url: `/${slug}`,
+        type: 'website',
+      },
     };
   }
 
@@ -57,11 +73,18 @@ export async function generateMetadata({
     const industries = await getCachedIndustries();
     const total = industries.find((i) => i.slug === slug)?.company_count ?? 0;
     const meta = industryMeta(industryName, total);
+    const title = page > 1 ? `${industryName}の企業一覧 (${page}ページ目)` : meta.title;
     return {
-      title: page > 1 ? `${industryName}の企業一覧 (${page}ページ目)` : meta.title,
+      title,
       description: meta.description,
       ...(page > 1 ? { robots: { index: false, follow: true } } : {}),
       alternates: { canonical: `/${slug}` },
+      openGraph: {
+        title,
+        description: meta.description,
+        url: `/${slug}`,
+        type: 'website',
+      },
     };
   }
 
@@ -106,7 +129,7 @@ async function PrefecturePage({
     getCachedIndustriesByPrefecture(slug),
   ]);
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://example.com';
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://japanese-company-directory.vercel.app';
 
   const breadcrumbItems = [
     { label: 'ホーム', href: '/' },
@@ -218,7 +241,7 @@ async function IndustryPage({
     getCachedPrefectures(),
   ]);
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://example.com';
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://japanese-company-directory.vercel.app';
 
   const breadcrumbItems = [
     { label: 'ホーム', href: '/' },

@@ -3,13 +3,12 @@
 // Contains all prefecture and city page URLs
 // ---------------------------------------------------------------------------
 
-import { getAllPrefectures, getCitiesByPrefecture } from '@/lib/queries';
+import { getCachedPrefectures, getCachedCitiesByPrefecture } from '@/lib/queries';
 
-export const dynamic = 'force-dynamic';
 export const revalidate = 86400;
 
 function getBaseUrl(): string {
-  return process.env.NEXT_PUBLIC_SITE_URL ?? 'https://example.com';
+  return process.env.NEXT_PUBLIC_SITE_URL ?? 'https://japanese-company-directory.vercel.app';
 }
 
 /**
@@ -27,7 +26,7 @@ function escapeXml(str: string): string {
 export async function GET(): Promise<Response> {
   const baseUrl = getBaseUrl();
 
-  const prefectures = await getAllPrefectures();
+  const prefectures = await getCachedPrefectures();
   const urls: string[] = [];
 
   // Add prefecture page URLs
@@ -43,7 +42,7 @@ export async function GET(): Promise<Response> {
 
   // For each prefecture, fetch cities and add city page URLs
   const cityResults = await Promise.all(
-    prefectures.map((pref) => getCitiesByPrefecture(pref.slug)),
+    prefectures.map((pref) => getCachedCitiesByPrefecture(pref.slug)),
   );
 
   for (let i = 0; i < prefectures.length; i++) {

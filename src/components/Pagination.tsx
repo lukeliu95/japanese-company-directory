@@ -56,7 +56,7 @@ export default function Pagination({
   const hasNext = currentPage < totalPages;
 
   return (
-    <nav aria-label="ページナビゲーション" className="flex items-center justify-center gap-1 py-6">
+    <nav aria-label="ページナビゲーション" className="flex items-center justify-center gap-2 py-6">
       {/* Previous button */}
       {hasPrev ? (
         <Link

@@ -70,11 +70,18 @@ export async function generateMetadata({
   if (pageType.type === 'city') {
     const cityName = pageType.city.name_ja;
     const meta = cityMeta(prefectureName, cityName, pageType.city.company_count);
+    const title = page > 1 ? `${prefectureName}${cityName}の企業一覧 (${page}ページ目)` : meta.title;
     return {
-      title: page > 1 ? `${prefectureName}${cityName}の企業一覧 (${page}ページ目)` : meta.title,
+      title,
       description: meta.description,
       ...(page > 1 ? { robots: { index: false, follow: true } } : {}),
       alternates: { canonical: `/${prefecture}/${encodeURIComponent(sub)}` },
+      openGraph: {
+        title,
+        description: meta.description,
+        url: `/${prefecture}/${encodeURIComponent(sub)}`,
+        type: 'website',
+      },
     };
   }
 
@@ -82,11 +89,18 @@ export async function generateMetadata({
   const industryName = INDUSTRY_BY_SLUG.get(sub) ?? sub;
   const total = await getCachedPrefectureIndustryCount(prefecture, sub);
   const meta = crossMeta(prefectureName, industryName, total);
+  const title = page > 1 ? `${prefectureName}の${industryName}企業一覧 (${page}ページ目)` : meta.title;
   return {
-    title: page > 1 ? `${prefectureName}の${industryName}企業一覧 (${page}ページ目)` : meta.title,
+    title,
     description: meta.description,
     ...(page > 1 ? { robots: { index: false, follow: true } } : {}),
     alternates: { canonical: `/${prefecture}/${encodeURIComponent(sub)}` },
+    openGraph: {
+      title,
+      description: meta.description,
+      url: `/${prefecture}/${encodeURIComponent(sub)}`,
+      type: 'website',
+    },
   };
 }
 
@@ -154,7 +168,7 @@ async function CityPage({
     getCachedIndustriesByPrefecture(prefectureSlug),
   ]);
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://example.com';
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://japanese-company-directory.vercel.app';
 
   const breadcrumbItems = [
     { label: 'ホーム', href: '/' },
@@ -270,7 +284,7 @@ async function CrossPage({
       getCachedIndustriesByPrefecture(prefectureSlug),
     ]);
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://example.com';
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://japanese-company-directory.vercel.app';
 
   const breadcrumbItems = [
     { label: 'ホーム', href: '/' },

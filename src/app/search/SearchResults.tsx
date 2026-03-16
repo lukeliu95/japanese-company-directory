@@ -115,10 +115,10 @@ export default function SearchResults() {
               {/* Results list */}
               <div className="space-y-4">
                 {result.items.map((company) => {
-                  const tags = parseJsonArray(company.industry_tags).slice(
-                    0,
-                    3,
-                  );
+                  const tags = parseJsonArray(company.industry_tags)
+                    .map((t) => t.replace('業界の会社', '').replace('の会社', '').trim())
+                    .filter(Boolean)
+                    .slice(0, 3);
                   return (
                     <div
                       key={company.company_id}

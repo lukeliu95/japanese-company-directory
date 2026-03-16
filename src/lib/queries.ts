@@ -376,6 +376,11 @@ export async function getPrefectureIndustryCount(
 // Search
 // ---------------------------------------------------------------------------
 
+/** Escape MySQL LIKE metacharacters to prevent wildcard injection. */
+function escapeLike(s: string): string {
+  return s.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
+}
+
 export async function searchCompanies(
   searchQuery: string,
   page: number,
@@ -386,7 +391,7 @@ export async function searchCompanies(
 
   if (!trimmed) return paginate([], 0, safePage, perPage);
 
-  const likePattern = `%${trimmed}%`;
+  const likePattern = `%${escapeLike(trimmed)}%`;
   const [countRows, dataRows] = await Promise.all([
     query<{ cnt: string }>(
       `SELECT COUNT(*) AS cnt FROM ${TABLE}
@@ -447,8 +452,10 @@ export const getCachedIndustries = unstable_cache(
 export const getCachedRecentCompanies = unstable_cache(
   (limit: number) => getRecentCompanies(limit),
   ['recent-companies'],
-  { revalidate: 3600 },
+  { revalidate: 3600, tags: ['recent-companies'] },
 );
+// Note: Next.js unstable_cache merges function args into the cache key automatically,
+// so different `limit` values are cached separately.
 
 /** Cached cities by prefecture (REGEXP_SUBSTR scan is expensive) — revalidates every 24 h. */
 export const getCachedCitiesByPrefecture = unstable_cache(

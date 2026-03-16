@@ -3,14 +3,13 @@
 // Contains all industry page URLs and cross (prefecture x industry) page URLs
 // ---------------------------------------------------------------------------
 
-import { getAllIndustries } from '@/lib/queries';
+import { getCachedIndustries } from '@/lib/queries';
 import { PREFECTURES } from '@/lib/slugs';
 
-export const dynamic = 'force-dynamic';
 export const revalidate = 86400;
 
 function getBaseUrl(): string {
-  return process.env.NEXT_PUBLIC_SITE_URL ?? 'https://example.com';
+  return process.env.NEXT_PUBLIC_SITE_URL ?? 'https://japanese-company-directory.vercel.app';
 }
 
 /**
@@ -30,8 +29,8 @@ export async function GET(): Promise<Response> {
 
   const urls: string[] = [];
 
-  // Fetch all industries with counts
-  const industries = await getAllIndustries();
+  // Fetch all industries with counts (cached)
+  const industries = await getCachedIndustries();
 
   // Add industry page URLs
   for (const industry of industries) {
