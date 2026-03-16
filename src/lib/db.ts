@@ -10,8 +10,8 @@ function createPool() {
     charset: 'utf8mb4',
     ssl: { rejectUnauthorized: false },
     waitForConnections: true,
-    connectionLimit: 5,
-    queueLimit: 0,
+    connectionLimit: 2,
+    queueLimit: 10,
     connectTimeout: 20000,
     enableKeepAlive: true,
     keepAliveInitialDelay: 10000,
@@ -25,9 +25,7 @@ declare global {
 }
 
 const pool: mysql.Pool =
-  process.env.NODE_ENV === 'production'
-    ? createPool()
-    : (global._mysqlPool ?? (global._mysqlPool = createPool()));
+  global._mysqlPool ?? (global._mysqlPool = createPool());
 
 /**
  * Execute a parameterized SQL query and return typed rows.

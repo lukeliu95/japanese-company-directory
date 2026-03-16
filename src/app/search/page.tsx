@@ -4,7 +4,7 @@ import SearchResults from './SearchResults';
 
 export const metadata: Metadata = {
   title: '企業検索',
-  description: 'GBase GTMの企業検索ページです。会社名やキーワードで全国90万社から検索できます。',
+  description: 'GBase GTMの企業検索ページです。会社名やキーワードで全国100万社から検索できます。',
   robots: { index: false, follow: true },
 };
 
