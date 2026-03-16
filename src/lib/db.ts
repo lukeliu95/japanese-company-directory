@@ -10,7 +10,7 @@ function createPool() {
     charset: 'utf8mb4',
     ssl: { rejectUnauthorized: false },
     waitForConnections: true,
-    connectionLimit: 5,
+    connectionLimit: 10,
     queueLimit: 0,
     connectTimeout: 20000,
     enableKeepAlive: true,

@@ -152,7 +152,11 @@ export default async function CompanyDetailPage({ params }: PageProps) {
         ...(company.established_date && { foundingDate: company.established_date }),
         ...(company.corporate_number && { taxID: company.corporate_number }),
         ...(company.representative_name && {
-          founder: { '@type': 'Person', name: company.representative_name },
+          member: {
+            '@type': 'OrganizationRole',
+            member: { '@type': 'Person', name: company.representative_name },
+            roleName: '代表者',
+          },
         }),
       },
       ...(faqs.length > 0
@@ -493,7 +497,7 @@ export default async function CompanyDetailPage({ params }: PageProps) {
                     <div className="text-sm font-bold text-gray-900">
                       {company.representative_name}
                     </div>
-                    <div className="text-xs text-gray-400">代表取締役</div>
+                    <div className="text-xs text-gray-400">代表者</div>
                   </div>
                 </div>
               </div>

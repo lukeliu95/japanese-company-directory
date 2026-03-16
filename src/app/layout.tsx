@@ -115,7 +115,7 @@ export default function RootLayout({
                     href={`/${ind.slug}`}
                     className="rounded-full border border-slate-300 px-3 py-1 text-xs text-slate-500 transition-colors hover:border-blue-400 hover:text-blue-600"
                   >
-                    {ind.name_ja}
+                    {ind.name_ja.replace('業界の会社', '').replace('の会社', '')}
                   </Link>
                 ))}
               </div>

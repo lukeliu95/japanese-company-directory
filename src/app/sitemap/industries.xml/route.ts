@@ -3,7 +3,7 @@
 // Contains all industry page URLs and cross (prefecture x industry) page URLs
 // ---------------------------------------------------------------------------
 
-import { getCachedIndustries } from '@/lib/queries';
+import { getCachedIndustries, getCachedIndustriesByPrefecture } from '@/lib/queries';
 import { PREFECTURES } from '@/lib/slugs';
 
 export const dynamic = 'force-dynamic';
@@ -44,12 +44,22 @@ export async function GET(): Promise<Response> {
     );
   }
 
-  // Add prefecture × industry cross page URLs (all combinations with data)
-  for (const pref of PREFECTURES) {
+  // Add prefecture × industry cross page URLs — only combinations with actual data.
+  // getCachedIndustriesByPrefecture returns only industries that have ≥1 company in that
+  // prefecture, so this filters out empty cross-pages (thin content) from the sitemap.
+  const prefIndustryData = await Promise.all(
+    PREFECTURES.map(async (pref) => {
+      const prefIndustries = await getCachedIndustriesByPrefecture(pref.slug);
+      return { prefSlug: pref.slug, slugSet: new Set(prefIndustries.map((i) => i.slug)) };
+    }),
+  );
+
+  for (const { prefSlug, slugSet } of prefIndustryData) {
     for (const industry of industries) {
+      if (!slugSet.has(industry.slug)) continue; // skip zero-data combinations
       urls.push(
         `  <url>
-    <loc>${escapeXml(baseUrl)}/${escapeXml(pref.slug)}/${escapeXml(industry.slug)}</loc>
+    <loc>${escapeXml(baseUrl)}/${escapeXml(prefSlug)}/${escapeXml(industry.slug)}</loc>
     <changefreq>weekly</changefreq>
     <priority>0.5</priority>
   </url>`,
