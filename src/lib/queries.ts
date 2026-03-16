@@ -449,3 +449,25 @@ export const getCachedRecentCompanies = unstable_cache(
   ['recent-companies'],
   { revalidate: 3600 },
 );
+
+/** Cached cities by prefecture (REGEXP_SUBSTR scan is expensive) — revalidates every 24 h. */
+export const getCachedCitiesByPrefecture = unstable_cache(
+  (prefectureSlug: string) => getCitiesByPrefecture(prefectureSlug),
+  ['cities-by-prefecture'],
+  { revalidate: 86400 },
+);
+
+/** Cached industry list by prefecture (JSON_TABLE CROSS JOIN is expensive) — revalidates every 24 h. */
+export const getCachedIndustriesByPrefecture = unstable_cache(
+  (prefectureSlug: string) => getIndustriesByPrefecture(prefectureSlug),
+  ['industries-by-prefecture'],
+  { revalidate: 86400 },
+);
+
+/** Cached prefecture×industry company count — revalidates every 24 h. */
+export const getCachedPrefectureIndustryCount = unstable_cache(
+  (prefectureSlug: string, industrySlug: string) =>
+    getPrefectureIndustryCount(prefectureSlug, industrySlug),
+  ['prefecture-industry-count'],
+  { revalidate: 86400 },
+);

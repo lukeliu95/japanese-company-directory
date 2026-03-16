@@ -1,12 +1,14 @@
 import type { Metadata } from 'next';
+import { cache } from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import {
   getCompaniesByCity,
   getCompaniesByPrefectureAndIndustry,
   getCityBySlug,
-  getIndustriesByPrefecture,
-  getAllPrefectures,
+  getCachedIndustriesByPrefecture,
+  getCachedPrefectures,
+  getCachedPrefectureIndustryCount,
 } from '@/lib/queries';
 import {
   PREFECTURE_SLUGS,
@@ -28,7 +30,7 @@ interface PageProps {
 }
 
 // ---- Determine page type ----
-async function resolvePageType(prefectureSlug: string, sub: string) {
+const resolvePageType = cache(async function resolvePageType(prefectureSlug: string, sub: string) {
   // First, try city
   const city = await getCityBySlug(prefectureSlug, sub);
   if (city) {
@@ -41,7 +43,7 @@ async function resolvePageType(prefectureSlug: string, sub: string) {
   }
 
   return null;
-}
+});
 
 // ---- Metadata ----
 export async function generateMetadata({
@@ -78,8 +80,8 @@ export async function generateMetadata({
 
   // Cross page
   const industryName = INDUSTRY_BY_SLUG.get(sub) ?? sub;
-  const result = await getCompaniesByPrefectureAndIndustry(prefecture, sub, 1);
-  const meta = crossMeta(prefectureName, industryName, result.total);
+  const total = await getCachedPrefectureIndustryCount(prefecture, sub);
+  const meta = crossMeta(prefectureName, industryName, total);
   return {
     title: page > 1 ? `${prefectureName}の${industryName}企業一覧 (${page}ページ目)` : meta.title,
     description: meta.description,
@@ -149,7 +151,7 @@ async function CityPage({
 
   const [companiesResult, industries] = await Promise.all([
     getCompaniesByCity(prefectureSlug, citySlug, page),
-    getIndustriesByPrefecture(prefectureSlug),
+    getCachedIndustriesByPrefecture(prefectureSlug),
   ]);
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://example.com';
@@ -264,8 +266,8 @@ async function CrossPage({
   const [companiesResult, allPrefectures, prefectureIndustries] =
     await Promise.all([
       getCompaniesByPrefectureAndIndustry(prefectureSlug, industrySlug, page),
-      getAllPrefectures(),
-      getIndustriesByPrefecture(prefectureSlug),
+      getCachedPrefectures(),
+      getCachedIndustriesByPrefecture(prefectureSlug),
     ]);
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://example.com';

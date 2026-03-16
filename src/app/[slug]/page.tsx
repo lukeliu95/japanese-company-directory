@@ -4,16 +4,15 @@ import { notFound } from 'next/navigation';
 import {
   getCompaniesByPrefecture,
   getCompaniesByIndustry,
-  getCitiesByPrefecture,
-  getIndustriesByPrefecture,
-  getAllPrefectures,
+  getCachedPrefectures,
+  getCachedIndustries,
+  getCachedCitiesByPrefecture,
+  getCachedIndustriesByPrefecture,
 } from '@/lib/queries';
 import {
   PREFECTURE_SLUGS,
   PREFECTURE_BY_SLUG,
   INDUSTRY_BY_SLUG,
-  PREFECTURES,
-  INDUSTRIES,
 } from '@/lib/slugs';
 import CompanyTable from '@/components/CompanyTable';
 import Pagination from '@/components/Pagination';
@@ -43,8 +42,9 @@ export async function generateMetadata({
 
   if (isPrefecture) {
     const prefectureName = PREFECTURE_BY_SLUG.get(slug) ?? slug;
-    const result = await getCompaniesByPrefecture(slug, 1);
-    const meta = prefectureMeta(prefectureName, result.total);
+    const prefectures = await getCachedPrefectures();
+    const total = prefectures.find((p) => p.slug === slug)?.company_count ?? 0;
+    const meta = prefectureMeta(prefectureName, total);
     return {
       title: page > 1 ? `${prefectureName}の企業一覧 (${page}ページ目)` : meta.title,
       description: meta.description,
@@ -54,8 +54,9 @@ export async function generateMetadata({
   }
 
   if (industryName) {
-    const result = await getCompaniesByIndustry(slug, 1);
-    const meta = industryMeta(industryName, result.total);
+    const industries = await getCachedIndustries();
+    const total = industries.find((i) => i.slug === slug)?.company_count ?? 0;
+    const meta = industryMeta(industryName, total);
     return {
       title: page > 1 ? `${industryName}の企業一覧 (${page}ページ目)` : meta.title,
       description: meta.description,
@@ -101,8 +102,8 @@ async function PrefecturePage({
 
   const [companiesResult, cities, industries] = await Promise.all([
     getCompaniesByPrefecture(slug, page),
-    getCitiesByPrefecture(slug),
-    getIndustriesByPrefecture(slug),
+    getCachedCitiesByPrefecture(slug),
+    getCachedIndustriesByPrefecture(slug),
   ]);
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://example.com';
@@ -214,7 +215,7 @@ async function IndustryPage({
 
   const [companiesResult, prefectures] = await Promise.all([
     getCompaniesByIndustry(slug, page),
-    getAllPrefectures(),
+    getCachedPrefectures(),
   ]);
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://example.com';
