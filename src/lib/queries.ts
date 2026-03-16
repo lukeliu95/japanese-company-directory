@@ -1,7 +1,12 @@
-import db from '@/lib/db';
+import { query } from '@/lib/db';
 import {
+  PREFECTURES,
+  INDUSTRIES,
   PREFECTURE_BY_SLUG,
   INDUSTRY_BY_SLUG,
+  INDUSTRY_BY_NAME,
+  parsePrefectureFromLocation,
+  parseCityFromLocation,
 } from '@/lib/slugs';
 import type {
   Company,
@@ -16,16 +21,22 @@ import type {
 // Constants
 // ---------------------------------------------------------------------------
 
+const TABLE = 'enterprise_baseconnect_in';
 const DEFAULT_PER_PAGE = 50;
 const HAS_NAME = "company_name IS NOT NULL AND company_name != ''";
+// Guard against malformed JSON in industry_tags before using JSON functions
+const VALID_JSON_TAGS = "industry_tags IS NOT NULL AND JSON_VALID(industry_tags)";
+
+// Build a CASE expression that maps location prefix → prefecture slug.
+// e.g. WHEN location LIKE '東京都%' THEN 'tokyo'
+const PREF_CASE = `CASE ${PREFECTURES.map(
+  (p) => `WHEN location LIKE '${p.name_ja}%' THEN '${p.slug}'`,
+).join(' ')} END`;
 
 // ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------
 
-/**
- * Build a PaginatedResult from items, total count, and pagination parameters.
- */
 function paginate<T>(
   items: T[],
   total: number,
@@ -43,65 +54,66 @@ function paginate<T>(
   };
 }
 
-/**
- * Clamp page to >= 1 and compute the SQL OFFSET.
- */
 function pageOffset(page: number, perPage: number): { offset: number; safePage: number } {
   const safePage = Math.max(1, page);
   return { offset: (safePage - 1) * perPage, safePage };
+}
+
+/** Convert prefectureSlug to the Japanese name used in location strings. */
+function prefName(slug: string): string | null {
+  return PREFECTURE_BY_SLUG.get(slug) ?? null;
+}
+
+/** Enrich a company row with derived prefecture_slug / city_slug. */
+function enrichCompany(row: Record<string, unknown>): Company {
+  const location = (row.location as string) ?? '';
+  const prefSlug = parsePrefectureFromLocation(location);
+  const citySlug = prefSlug ? parseCityFromLocation(location, prefSlug) : null;
+  return { ...row, prefecture_slug: prefSlug, city_slug: citySlug } as unknown as Company;
 }
 
 // ---------------------------------------------------------------------------
 // Company queries
 // ---------------------------------------------------------------------------
 
-/**
- * Fetch a single company by its company_id.
- */
 export async function getCompanyById(id: string): Promise<Company | null> {
-  const result = await db.execute({
-    sql: 'SELECT * FROM companies WHERE company_id = ?',
-    args: [id],
-  });
-
-  if (result.rows.length === 0) return null;
-  return result.rows[0] as unknown as Company;
+  const rows = await query<Record<string, unknown>>(
+    `SELECT * FROM ${TABLE} WHERE company_id = ?`,
+    [id],
+  );
+  if (!rows.length) return null;
+  return enrichCompany(rows[0]);
 }
 
-/**
- * List companies filtered by prefecture slug with pagination.
- */
 export async function getCompaniesByPrefecture(
   prefectureSlug: string,
   page: number,
   perPage: number = DEFAULT_PER_PAGE,
 ): Promise<PaginatedResult<CompanyListItem>> {
   const { offset, safePage } = pageOffset(page, perPage);
+  const name = prefName(prefectureSlug);
+  if (!name) return paginate([], 0, safePage, perPage);
 
-  const [countResult, dataResult] = await Promise.all([
-    db.execute({
-      sql: `SELECT COUNT(*) as cnt FROM companies WHERE prefecture_slug = ? AND ${HAS_NAME}`,
-      args: [prefectureSlug],
-    }),
-    db.execute({
-      sql: `SELECT company_id, company_name, location, industry_tags, summary,
-                   established_date, capital, revenue
-            FROM companies
-            WHERE prefecture_slug = ? AND ${HAS_NAME}
-            ORDER BY company_name ASC
-            LIMIT ? OFFSET ?`,
-      args: [prefectureSlug, perPage, offset],
-    }),
+  const likeParam = `${name}%`;
+  const [countRows, dataRows] = await Promise.all([
+    query<{ cnt: string }>(
+      `SELECT COUNT(*) AS cnt FROM ${TABLE} WHERE location LIKE ? AND ${HAS_NAME}`,
+      [likeParam],
+    ),
+    query<CompanyListItem>(
+      `SELECT company_id, company_name, location, industry_tags, summary,
+              established_date, capital, revenue
+       FROM ${TABLE}
+       WHERE location LIKE ? AND ${HAS_NAME}
+       ORDER BY company_name ASC
+       LIMIT ? OFFSET ?`,
+      [likeParam, perPage, offset],
+    ),
   ]);
 
-  const total = Number(countResult.rows[0]?.cnt ?? 0);
-  const items = dataResult.rows as unknown as CompanyListItem[];
-  return paginate(items, total, safePage, perPage);
+  return paginate(dataRows, Number(countRows[0]?.cnt ?? 0), safePage, perPage);
 }
 
-/**
- * List companies filtered by prefecture and city slug with pagination.
- */
 export async function getCompaniesByCity(
   prefectureSlug: string,
   citySlug: string,
@@ -109,73 +121,59 @@ export async function getCompaniesByCity(
   perPage: number = DEFAULT_PER_PAGE,
 ): Promise<PaginatedResult<CompanyListItem>> {
   const { offset, safePage } = pageOffset(page, perPage);
+  const name = prefName(prefectureSlug);
+  if (!name) return paginate([], 0, safePage, perPage);
 
-  const [countResult, dataResult] = await Promise.all([
-    db.execute({
-      sql: `SELECT COUNT(*) as cnt FROM companies
-            WHERE prefecture_slug = ? AND city_slug = ? AND ${HAS_NAME}`,
-      args: [prefectureSlug, citySlug],
-    }),
-    db.execute({
-      sql: `SELECT company_id, company_name, location, industry_tags, summary,
-                   established_date, capital, revenue
-            FROM companies
-            WHERE prefecture_slug = ? AND city_slug = ? AND ${HAS_NAME}
-            ORDER BY company_name ASC
-            LIMIT ? OFFSET ?`,
-      args: [prefectureSlug, citySlug, perPage, offset],
-    }),
+  // city_slug is the raw Japanese city name (e.g. '渋谷区'), so the pattern is '東京都渋谷区%'
+  const likeParam = `${name}${citySlug}%`;
+  const [countRows, dataRows] = await Promise.all([
+    query<{ cnt: string }>(
+      `SELECT COUNT(*) AS cnt FROM ${TABLE} WHERE location LIKE ? AND ${HAS_NAME}`,
+      [likeParam],
+    ),
+    query<CompanyListItem>(
+      `SELECT company_id, company_name, location, industry_tags, summary,
+              established_date, capital, revenue
+       FROM ${TABLE}
+       WHERE location LIKE ? AND ${HAS_NAME}
+       ORDER BY company_name ASC
+       LIMIT ? OFFSET ?`,
+      [likeParam, perPage, offset],
+    ),
   ]);
 
-  const total = Number(countResult.rows[0]?.cnt ?? 0);
-  const items = dataResult.rows as unknown as CompanyListItem[];
-  return paginate(items, total, safePage, perPage);
+  return paginate(dataRows, Number(countRows[0]?.cnt ?? 0), safePage, perPage);
 }
 
-/**
- * List companies filtered by industry slug with pagination.
- * Uses the company_industries junction table for safe, indexed lookups.
- */
 export async function getCompaniesByIndustry(
   industrySlug: string,
   page: number,
   perPage: number = DEFAULT_PER_PAGE,
 ): Promise<PaginatedResult<CompanyListItem>> {
   const { offset, safePage } = pageOffset(page, perPage);
-
   const industryName = INDUSTRY_BY_SLUG.get(industrySlug);
-  if (!industryName) {
-    return paginate([], 0, safePage, perPage);
-  }
+  if (!industryName) return paginate([], 0, safePage, perPage);
 
-  const [countResult, dataResult] = await Promise.all([
-    db.execute({
-      sql: `SELECT COUNT(*) as cnt FROM company_industries ci
-            JOIN companies c ON c.company_id = ci.company_id
-            WHERE ci.industry_slug = ? AND c.${HAS_NAME}`,
-      args: [industrySlug],
-    }),
-    db.execute({
-      sql: `SELECT c.company_id, c.company_name, c.location, c.industry_tags,
-                   c.summary, c.established_date, c.capital, c.revenue
-            FROM company_industries ci
-            JOIN companies c ON c.company_id = ci.company_id
-            WHERE ci.industry_slug = ? AND c.${HAS_NAME}
-            ORDER BY c.company_name ASC
-            LIMIT ? OFFSET ?`,
-      args: [industrySlug, perPage, offset],
-    }),
+  const [countRows, dataRows] = await Promise.all([
+    query<{ cnt: string }>(
+      `SELECT COUNT(*) AS cnt FROM ${TABLE}
+       WHERE ${VALID_JSON_TAGS} AND JSON_SEARCH(industry_tags, 'one', ?) IS NOT NULL AND ${HAS_NAME}`,
+      [industryName],
+    ),
+    query<CompanyListItem>(
+      `SELECT company_id, company_name, location, industry_tags, summary,
+              established_date, capital, revenue
+       FROM ${TABLE}
+       WHERE ${VALID_JSON_TAGS} AND JSON_SEARCH(industry_tags, 'one', ?) IS NOT NULL AND ${HAS_NAME}
+       ORDER BY company_name ASC
+       LIMIT ? OFFSET ?`,
+      [industryName, perPage, offset],
+    ),
   ]);
 
-  const total = Number(countResult.rows[0]?.cnt ?? 0);
-  const items = dataResult.rows as unknown as CompanyListItem[];
-  return paginate(items, total, safePage, perPage);
+  return paginate(dataRows, Number(countRows[0]?.cnt ?? 0), safePage, perPage);
 }
 
-/**
- * List companies filtered by both prefecture and industry slug with pagination.
- * Uses the company_industries junction table for safe, indexed lookups.
- */
 export async function getCompaniesByPrefectureAndIndustry(
   prefectureSlug: string,
   industrySlug: string,
@@ -183,261 +181,245 @@ export async function getCompaniesByPrefectureAndIndustry(
   perPage: number = DEFAULT_PER_PAGE,
 ): Promise<PaginatedResult<CompanyListItem>> {
   const { offset, safePage } = pageOffset(page, perPage);
-
+  const name = prefName(prefectureSlug);
   const industryName = INDUSTRY_BY_SLUG.get(industrySlug);
-  if (!industryName) {
-    return paginate([], 0, safePage, perPage);
-  }
+  if (!name || !industryName) return paginate([], 0, safePage, perPage);
 
-  const [countResult, dataResult] = await Promise.all([
-    db.execute({
-      sql: `SELECT COUNT(*) as cnt FROM company_industries ci
-            JOIN companies c ON c.company_id = ci.company_id
-            WHERE c.prefecture_slug = ? AND ci.industry_slug = ? AND c.${HAS_NAME}`,
-      args: [prefectureSlug, industrySlug],
-    }),
-    db.execute({
-      sql: `SELECT c.company_id, c.company_name, c.location, c.industry_tags,
-                   c.summary, c.established_date, c.capital, c.revenue
-            FROM company_industries ci
-            JOIN companies c ON c.company_id = ci.company_id
-            WHERE c.prefecture_slug = ? AND ci.industry_slug = ? AND c.${HAS_NAME}
-            ORDER BY c.company_name ASC
-            LIMIT ? OFFSET ?`,
-      args: [prefectureSlug, industrySlug, perPage, offset],
-    }),
+  const likeParam = `${name}%`;
+  const [countRows, dataRows] = await Promise.all([
+    query<{ cnt: string }>(
+      `SELECT COUNT(*) AS cnt FROM ${TABLE}
+       WHERE location LIKE ? AND ${VALID_JSON_TAGS} AND JSON_SEARCH(industry_tags, 'one', ?) IS NOT NULL AND ${HAS_NAME}`,
+      [likeParam, industryName],
+    ),
+    query<CompanyListItem>(
+      `SELECT company_id, company_name, location, industry_tags, summary,
+              established_date, capital, revenue
+       FROM ${TABLE}
+       WHERE location LIKE ? AND ${VALID_JSON_TAGS} AND JSON_SEARCH(industry_tags, 'one', ?) IS NOT NULL AND ${HAS_NAME}
+       ORDER BY company_name ASC
+       LIMIT ? OFFSET ?`,
+      [likeParam, industryName, perPage, offset],
+    ),
   ]);
 
-  const total = Number(countResult.rows[0]?.cnt ?? 0);
-  const items = dataResult.rows as unknown as CompanyListItem[];
-  return paginate(items, total, safePage, perPage);
+  return paginate(dataRows, Number(countRows[0]?.cnt ?? 0), safePage, perPage);
 }
 
 // ---------------------------------------------------------------------------
 // Prefecture queries
 // ---------------------------------------------------------------------------
 
-/**
- * Return all prefectures with their company counts.
- * Reads from the pre-computed prefectures table.
- */
 export async function getAllPrefectures(): Promise<Prefecture[]> {
-  const result = await db.execute(
-    'SELECT slug, name_ja, company_count FROM prefectures ORDER BY company_count DESC',
+  const rows = await query<{ slug: string; company_count: string }>(
+    `SELECT ${PREF_CASE} AS slug, COUNT(*) AS company_count
+     FROM ${TABLE}
+     WHERE ${HAS_NAME}
+     GROUP BY slug
+     HAVING slug IS NOT NULL
+     ORDER BY company_count DESC`,
   );
-  return result.rows as unknown as Prefecture[];
+  return rows.map((r) => ({
+    slug: r.slug,
+    name_ja: PREFECTURE_BY_SLUG.get(r.slug) ?? r.slug,
+    company_count: Number(r.company_count),
+  }));
 }
 
-/**
- * Fetch a single prefecture by slug.
- * Reads from the pre-computed prefectures table, falls back to in-memory lookup.
- */
 export async function getPrefectureBySlug(slug: string): Promise<Prefecture | null> {
   const name_ja = PREFECTURE_BY_SLUG.get(slug);
   if (!name_ja) return null;
 
-  const result = await db.execute({
-    sql: 'SELECT slug, name_ja, company_count FROM prefectures WHERE slug = ?',
-    args: [slug],
-  });
-
-  if (result.rows.length === 0) return null;
-  return result.rows[0] as unknown as Prefecture;
+  const rows = await query<{ cnt: string }>(
+    `SELECT COUNT(*) AS cnt FROM ${TABLE} WHERE location LIKE ? AND ${HAS_NAME}`,
+    [`${name_ja}%`],
+  );
+  return { slug, name_ja, company_count: Number(rows[0]?.cnt ?? 0) };
 }
 
 // ---------------------------------------------------------------------------
 // City queries
 // ---------------------------------------------------------------------------
 
-/**
- * Return all cities within a prefecture, ordered by company count descending.
- * Reads from the pre-computed cities table.
- */
 export async function getCitiesByPrefecture(prefectureSlug: string): Promise<City[]> {
-  const result = await db.execute({
-    sql: `SELECT slug, name_ja, prefecture_slug, company_count
-          FROM cities
-          WHERE prefecture_slug = ?
-          ORDER BY company_count DESC`,
-    args: [prefectureSlug],
-  });
-  return result.rows as unknown as City[];
+  const name = prefName(prefectureSlug);
+  if (!name) return [];
+
+  // Extract the city name: the text after the prefecture name up to the first 市/区/町/村/郡
+  const rows = await query<{ city_slug: string; company_count: string }>(
+    `SELECT
+       REGEXP_SUBSTR(SUBSTRING(location, CHAR_LENGTH(?) + 1), '^.+?[市区町村郡]') AS city_slug,
+       COUNT(*) AS company_count
+     FROM ${TABLE}
+     WHERE location LIKE CONCAT(?, '%') AND ${HAS_NAME}
+     GROUP BY city_slug
+     HAVING city_slug IS NOT NULL AND city_slug != ''
+     ORDER BY company_count DESC
+     LIMIT 500`,
+    [name, name],
+  );
+
+  return rows.map((r) => ({
+    slug: r.city_slug,
+    name_ja: r.city_slug,
+    prefecture_slug: prefectureSlug,
+    company_count: Number(r.company_count),
+  }));
 }
 
-/**
- * Fetch a single city by its prefecture slug and city slug.
- * Reads from the pre-computed cities table.
- */
 export async function getCityBySlug(
   prefectureSlug: string,
   citySlug: string,
 ): Promise<City | null> {
-  const result = await db.execute({
-    sql: `SELECT slug, name_ja, prefecture_slug, company_count
-          FROM cities
-          WHERE prefecture_slug = ? AND slug = ?`,
-    args: [prefectureSlug, citySlug],
-  });
+  const name = prefName(prefectureSlug);
+  if (!name) return null;
 
-  if (result.rows.length === 0) return null;
-  return result.rows[0] as unknown as City;
+  const rows = await query<{ cnt: string }>(
+    `SELECT COUNT(*) AS cnt FROM ${TABLE}
+     WHERE location LIKE CONCAT(?, ?, '%') AND ${HAS_NAME}`,
+    [name, citySlug],
+  );
+  const count = Number(rows[0]?.cnt ?? 0);
+  if (count === 0) return null;
+
+  return { slug: citySlug, name_ja: citySlug, prefecture_slug: prefectureSlug, company_count: count };
 }
 
 // ---------------------------------------------------------------------------
 // Industry queries
 // ---------------------------------------------------------------------------
 
-/**
- * Return all industries with their company counts.
- * Reads from the pre-computed industries table.
- */
 export async function getAllIndustries(): Promise<Industry[]> {
-  const result = await db.execute(
-    'SELECT slug, name_ja, company_count FROM industries ORDER BY company_count DESC',
+  const rows = await query<{ name_ja: string; company_count: string }>(
+    `SELECT jt.tag AS name_ja, COUNT(*) AS company_count
+     FROM ${TABLE}
+     CROSS JOIN JSON_TABLE(
+       industry_tags,
+       '$[*]' COLUMNS (tag VARCHAR(200) PATH '$')
+     ) jt
+     WHERE ${VALID_JSON_TAGS} AND ${HAS_NAME}
+     GROUP BY jt.tag
+     ORDER BY company_count DESC`,
   );
-  return result.rows as unknown as Industry[];
+
+  const INDUSTRY_NAMES = new Set<string>(INDUSTRIES.map((i) => i.name_ja));
+  const nameToSlug = INDUSTRY_BY_NAME as Map<string, string>;
+  return rows
+    .filter((r) => INDUSTRY_NAMES.has(r.name_ja))
+    .map((r) => ({
+      slug: nameToSlug.get(r.name_ja) ?? '',
+      name_ja: r.name_ja,
+      company_count: Number(r.company_count),
+    }))
+    .filter((r) => r.slug);
 }
 
-/**
- * Return industries available within a specific prefecture.
- * Reads from the prefecture_industries junction table joined with industries
- * for the Japanese display name.
- */
-export async function getIndustriesByPrefecture(
-  prefectureSlug: string,
-): Promise<Industry[]> {
-  const result = await db.execute({
-    sql: `SELECT pi.industry_slug AS slug, i.name_ja, pi.company_count
-          FROM prefecture_industries pi
-          JOIN industries i ON i.slug = pi.industry_slug
-          WHERE pi.prefecture_slug = ?
-          ORDER BY pi.company_count DESC`,
-    args: [prefectureSlug],
-  });
-  return result.rows as unknown as Industry[];
+export async function getIndustriesByPrefecture(prefectureSlug: string): Promise<Industry[]> {
+  const name = prefName(prefectureSlug);
+  if (!name) return [];
+
+  const rows = await query<{ name_ja: string; company_count: string }>(
+    `SELECT jt.tag AS name_ja, COUNT(*) AS company_count
+     FROM ${TABLE}
+     CROSS JOIN JSON_TABLE(
+       industry_tags,
+       '$[*]' COLUMNS (tag VARCHAR(200) PATH '$')
+     ) jt
+     WHERE location LIKE CONCAT(?, '%') AND ${VALID_JSON_TAGS} AND ${HAS_NAME}
+     GROUP BY jt.tag
+     ORDER BY company_count DESC`,
+    [name],
+  );
+
+  const INDUSTRY_NAMES = new Set<string>(INDUSTRIES.map((i) => i.name_ja));
+  const nameToSlug = INDUSTRY_BY_NAME as Map<string, string>;
+  return rows
+    .filter((r) => INDUSTRY_NAMES.has(r.name_ja))
+    .map((r) => ({
+      slug: nameToSlug.get(r.name_ja) ?? '',
+      name_ja: r.name_ja,
+      company_count: Number(r.company_count),
+    }))
+    .filter((r) => r.slug);
 }
 
-/**
- * Fetch a single industry by slug.
- */
 export async function getIndustryBySlug(slug: string): Promise<Industry | null> {
-  const result = await db.execute({
-    sql: 'SELECT slug, name_ja, company_count FROM industries WHERE slug = ?',
-    args: [slug],
-  });
+  const industryName = INDUSTRY_BY_SLUG.get(slug);
+  if (!industryName) return null;
 
-  if (result.rows.length === 0) return null;
-  return result.rows[0] as unknown as Industry;
+  const rows = await query<{ cnt: string }>(
+    `SELECT COUNT(*) AS cnt FROM ${TABLE}
+     WHERE ${VALID_JSON_TAGS} AND JSON_SEARCH(industry_tags, 'one', ?) IS NOT NULL AND ${HAS_NAME}`,
+    [industryName],
+  );
+  return { slug, name_ja: industryName, company_count: Number(rows[0]?.cnt ?? 0) };
 }
 
-/**
- * Get the company count for a specific prefecture + industry combination.
- * Reads from the pre-computed prefecture_industries junction table.
- */
 export async function getPrefectureIndustryCount(
   prefectureSlug: string,
   industrySlug: string,
 ): Promise<number> {
-  const result = await db.execute({
-    sql: `SELECT company_count FROM prefecture_industries
-          WHERE prefecture_slug = ? AND industry_slug = ?`,
-    args: [prefectureSlug, industrySlug],
-  });
+  const name = prefName(prefectureSlug);
+  const industryName = INDUSTRY_BY_SLUG.get(industrySlug);
+  if (!name || !industryName) return 0;
 
-  if (result.rows.length === 0) return 0;
-  return Number(result.rows[0].company_count ?? 0);
+  const rows = await query<{ cnt: string }>(
+    `SELECT COUNT(*) AS cnt FROM ${TABLE}
+     WHERE location LIKE ? AND ${VALID_JSON_TAGS} AND JSON_SEARCH(industry_tags, 'one', ?) IS NOT NULL AND ${HAS_NAME}`,
+    [`${name}%`, industryName],
+  );
+  return Number(rows[0]?.cnt ?? 0);
 }
 
 // ---------------------------------------------------------------------------
 // Search
 // ---------------------------------------------------------------------------
 
-/**
- * Search companies by query string.
- * Attempts FTS5 first (companies_fts table), falls back to LIKE prefix match
- * if the FTS query fails (e.g., table does not exist or syntax error).
- */
 export async function searchCompanies(
-  query: string,
+  searchQuery: string,
   page: number,
   perPage: number = DEFAULT_PER_PAGE,
 ): Promise<PaginatedResult<CompanyListItem>> {
   const { offset, safePage } = pageOffset(page, perPage);
-  const trimmed = query.trim();
+  const trimmed = searchQuery.trim();
 
-  if (!trimmed) {
-    return paginate([], 0, safePage, perPage);
-  }
+  if (!trimmed) return paginate([], 0, safePage, perPage);
 
-  // --- Try FTS5 first ---
-  try {
-    const [countResult, dataResult] = await Promise.all([
-      db.execute({
-        sql: `SELECT COUNT(*) as cnt
-              FROM companies_fts
-              WHERE companies_fts MATCH ?`,
-        args: [trimmed],
-      }),
-      db.execute({
-        sql: `SELECT c.company_id, c.company_name, c.location, c.industry_tags,
-                     c.summary, c.established_date, c.capital, c.revenue
-              FROM companies_fts fts
-              JOIN companies c ON c.rowid = fts.rowid
-              WHERE companies_fts MATCH ?
-              ORDER BY rank
-              LIMIT ? OFFSET ?`,
-        args: [trimmed, perPage, offset],
-      }),
-    ]);
-
-    const total = Number(countResult.rows[0]?.cnt ?? 0);
-    const items = dataResult.rows as unknown as CompanyListItem[];
-    return paginate(items, total, safePage, perPage);
-  } catch {
-    // FTS5 unavailable or query syntax error -- fall back to LIKE
-  }
-
-  // --- LIKE fallback: prefix match on company_name ---
-  const likePattern = `${trimmed}%`;
-
-  const [countResult, dataResult] = await Promise.all([
-    db.execute({
-      sql: `SELECT COUNT(*) as cnt FROM companies
-            WHERE company_name LIKE ? AND ${HAS_NAME}`,
-      args: [likePattern],
-    }),
-    db.execute({
-      sql: `SELECT company_id, company_name, location, industry_tags, summary,
-                   established_date, capital, revenue
-            FROM companies
-            WHERE company_name LIKE ? AND ${HAS_NAME}
-            ORDER BY company_name ASC
-            LIMIT ? OFFSET ?`,
-      args: [likePattern, perPage, offset],
-    }),
+  const likePattern = `%${trimmed}%`;
+  const [countRows, dataRows] = await Promise.all([
+    query<{ cnt: string }>(
+      `SELECT COUNT(*) AS cnt FROM ${TABLE}
+       WHERE (company_name LIKE ? OR company_name_kana LIKE ? OR summary LIKE ?)
+         AND ${HAS_NAME}`,
+      [likePattern, likePattern, likePattern],
+    ),
+    query<CompanyListItem>(
+      `SELECT company_id, company_name, location, industry_tags, summary,
+              established_date, capital, revenue
+       FROM ${TABLE}
+       WHERE (company_name LIKE ? OR company_name_kana LIKE ? OR summary LIKE ?)
+         AND ${HAS_NAME}
+       ORDER BY company_name ASC
+       LIMIT ? OFFSET ?`,
+      [likePattern, likePattern, likePattern, perPage, offset],
+    ),
   ]);
 
-  const total = Number(countResult.rows[0]?.cnt ?? 0);
-  const items = dataResult.rows as unknown as CompanyListItem[];
-  return paginate(items, total, safePage, perPage);
+  return paginate(dataRows, Number(countRows[0]?.cnt ?? 0), safePage, perPage);
 }
 
 // ---------------------------------------------------------------------------
 // Recent companies
 // ---------------------------------------------------------------------------
 
-/**
- * Return the most recently updated companies.
- */
 export async function getRecentCompanies(limit: number): Promise<CompanyListItem[]> {
-  const result = await db.execute({
-    sql: `SELECT company_id, company_name, location, industry_tags, summary,
-                 established_date, capital, revenue
-          FROM companies
-          WHERE ${HAS_NAME}
-          ORDER BY last_updated DESC
-          LIMIT ?`,
-    args: [limit],
-  });
-  return result.rows as unknown as CompanyListItem[];
+  return query<CompanyListItem>(
+    `SELECT company_id, company_name, location, industry_tags, summary,
+            established_date, capital, revenue
+     FROM ${TABLE}
+     WHERE ${HAS_NAME}
+     ORDER BY last_updated DESC
+     LIMIT ?`,
+    [limit],
+  );
 }

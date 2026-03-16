@@ -3,13 +3,15 @@
 // Each file contains up to 50,000 company URLs
 // ---------------------------------------------------------------------------
 
-import db from '@/lib/db';
+import { query } from '@/lib/db';
 import { NextRequest } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 86400;
 
 const BATCH_SIZE = 50000;
+const TABLE = 'enterprise_baseconnect_in';
+const HAS_NAME = "company_name IS NOT NULL AND company_name != ''";
 
 function getBaseUrl(): string {
   return process.env.NEXT_PUBLIC_SITE_URL ?? 'https://example.com';
@@ -45,10 +47,10 @@ export async function GET(
   }
 
   // Verify the batch number is within valid range
-  const countResult = await db.execute(
-    "SELECT COUNT(*) as count FROM companies WHERE company_name IS NOT NULL AND company_name != ''",
+  const countRows = await query<{ count: string }>(
+    `SELECT COUNT(*) as count FROM ${TABLE} WHERE ${HAS_NAME}`,
   );
-  const totalCompanies = Number(countResult.rows[0].count);
+  const totalCompanies = Number(countRows[0].count);
   const totalBatches = Math.ceil(totalCompanies / BATCH_SIZE);
 
   if (batchNumber > totalBatches) {
@@ -59,16 +61,16 @@ export async function GET(
   const offset = (batchNumber - 1) * BATCH_SIZE;
 
   // Fetch company IDs for this batch
-  const result = await db.execute({
-    sql: "SELECT company_id, last_updated FROM companies WHERE company_name IS NOT NULL AND company_name != '' LIMIT ? OFFSET ?",
-    args: [BATCH_SIZE, offset],
-  });
+  const rows = await query<{ company_id: string; last_updated: string | null }>(
+    `SELECT company_id, last_updated FROM ${TABLE} WHERE ${HAS_NAME} LIMIT ? OFFSET ?`,
+    [BATCH_SIZE, offset],
+  );
 
   const urls: string[] = [];
 
-  for (const row of result.rows) {
-    const companyId = row.company_id as string;
-    const lastMod = row.last_updated as string | null;
+  for (const row of rows) {
+    const companyId = row.company_id;
+    const lastMod = row.last_updated;
     // Convert "2025年05月12日" to "2025-05-12" format
     const lastModISO = lastMod?.match(/(\d{4})年(\d{2})月(\d{2})日/)
       ? `${RegExp.$1}-${RegExp.$2}-${RegExp.$3}`

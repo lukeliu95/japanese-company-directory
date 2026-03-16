@@ -3,7 +3,7 @@
 // Points to child sitemaps: areas, industries, and company batches
 // ---------------------------------------------------------------------------
 
-import db from '@/lib/db';
+import { query } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 86400;
@@ -18,10 +18,10 @@ export async function GET(): Promise<Response> {
   const baseUrl = getBaseUrl();
 
   // Get total company count to calculate number of company sitemap files
-  const result = await db.execute(
-    "SELECT COUNT(*) as count FROM companies WHERE company_name IS NOT NULL AND company_name != ''",
+  const rows = await query<{ count: string }>(
+    "SELECT COUNT(*) as count FROM enterprise_baseconnect_in WHERE company_name IS NOT NULL AND company_name != ''",
   );
-  const totalCompanies = Number(result.rows[0].count);
+  const totalCompanies = Number(rows[0].count);
   const totalBatches = Math.ceil(totalCompanies / BATCH_SIZE);
 
   const sitemaps: string[] = [];

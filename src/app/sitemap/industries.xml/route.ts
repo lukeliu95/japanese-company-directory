@@ -4,7 +4,7 @@
 // ---------------------------------------------------------------------------
 
 import { getAllIndustries } from '@/lib/queries';
-import db from '@/lib/db';
+import { PREFECTURES } from '@/lib/slugs';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 86400;
@@ -30,7 +30,7 @@ export async function GET(): Promise<Response> {
 
   const urls: string[] = [];
 
-  // Fetch all industries
+  // Fetch all industries with counts
   const industries = await getAllIndustries();
 
   // Add industry page URLs
@@ -44,21 +44,17 @@ export async function GET(): Promise<Response> {
     );
   }
 
-  // Fetch all cross pages from prefecture_industries table
-  const crossResult = await db.execute(
-    'SELECT prefecture_slug, industry_slug FROM prefecture_industries',
-  );
-
-  for (const row of crossResult.rows) {
-    const prefSlug = row.prefecture_slug as string;
-    const indSlug = row.industry_slug as string;
-    urls.push(
-      `  <url>
-    <loc>${escapeXml(baseUrl)}/${escapeXml(prefSlug)}/${escapeXml(indSlug)}</loc>
+  // Add prefecture × industry cross page URLs (all combinations with data)
+  for (const pref of PREFECTURES) {
+    for (const industry of industries) {
+      urls.push(
+        `  <url>
+    <loc>${escapeXml(baseUrl)}/${escapeXml(pref.slug)}/${escapeXml(industry.slug)}</loc>
     <changefreq>weekly</changefreq>
     <priority>0.5</priority>
   </url>`,
-    );
+      );
+    }
   }
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
