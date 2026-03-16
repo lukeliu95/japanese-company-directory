@@ -20,8 +20,8 @@ import Pagination from '@/components/Pagination';
 import Breadcrumb from '@/components/Breadcrumb';
 import IndustryList from '@/components/IndustryList';
 import JsonLd from '@/components/JsonLd';
+import { prefectureMeta, industryMeta } from '@/lib/seo';
 
-export const dynamic = 'force-dynamic';
 export const revalidate = 86400;
 
 interface PageProps {
@@ -43,30 +43,24 @@ export async function generateMetadata({
 
   if (isPrefecture) {
     const prefectureName = PREFECTURE_BY_SLUG.get(slug) ?? slug;
-    const title =
-      page > 1
-        ? `${prefectureName}の企業一覧 (${page}ページ目)`
-        : `${prefectureName}の企業一覧`;
+    const result = await getCompaniesByPrefecture(slug, 1);
+    const meta = prefectureMeta(prefectureName, result.total);
     return {
-      title,
-      description: `${prefectureName}に所在する企業の一覧です。市区町村・業界別に検索できます。`,
+      title: page > 1 ? `${prefectureName}の企業一覧 (${page}ページ目)` : meta.title,
+      description: meta.description,
       ...(page > 1 ? { robots: { index: false, follow: true } } : {}),
-      alternates: {
-        canonical: `/${slug}`,
-      },
+      alternates: { canonical: `/${slug}` },
     };
   }
 
   if (industryName) {
-    const title =
-      page > 1 ? `${industryName} (${page}ページ目)` : industryName;
+    const result = await getCompaniesByIndustry(slug, 1);
+    const meta = industryMeta(industryName, result.total);
     return {
-      title,
-      description: `${industryName}の企業一覧です。都道府県別に企業を検索できます。`,
+      title: page > 1 ? `${industryName}の企業一覧 (${page}ページ目)` : meta.title,
+      description: meta.description,
       ...(page > 1 ? { robots: { index: false, follow: true } } : {}),
-      alternates: {
-        canonical: `/${slug}`,
-      },
+      alternates: { canonical: `/${slug}` },
     };
   }
 

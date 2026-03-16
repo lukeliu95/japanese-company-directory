@@ -7,7 +7,6 @@ import IndustryList from '@/components/IndustryList';
 import CompanyTable from '@/components/CompanyTable';
 import JsonLd from '@/components/JsonLd';
 
-export const dynamic = 'force-dynamic';
 export const revalidate = 86400;
 
 export const metadata: Metadata = {
@@ -54,7 +53,9 @@ export default async function HomePage() {
       {/* Hero section with search */}
       <section className="border-b border-slate-200 bg-gradient-to-b from-blue-50 to-white px-4 py-16 text-center sm:px-6 lg:px-8">
         <div className="mx-auto max-w-3xl">
-          <h1 className="sr-only">GBase GTM</h1>
+          <h1 className="mb-3 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+            日本全国の企業情報データベース
+          </h1>
           <p className="mb-8 text-base text-slate-600 sm:text-lg">
             全国約90万社の企業情報を都道府県・業界別に検索
           </p>

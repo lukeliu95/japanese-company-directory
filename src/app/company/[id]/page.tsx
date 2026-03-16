@@ -9,7 +9,6 @@ import {
 import Breadcrumb from '@/components/Breadcrumb';
 import JsonLd from '@/components/JsonLd';
 
-export const dynamic = 'force-dynamic';
 export const revalidate = 604800;
 
 function parseJsonArray(raw: string | null): string[] {
@@ -43,11 +42,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     ? `${name}の企業情報。${company.summary.slice(0, 100)}。${parts.join('・')}。`
     : `${name}の企業情報。${parts.join('・')}。会社概要・業界・所在地を掲載。`;
 
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://example.com';
+  const locSuffix = loc ? `(${loc})` : '';
   return {
-    title: `${name} - 会社概要・企業情報`,
+    title: `${name}${locSuffix} - 会社概要・企業情報`,
     description: desc.slice(0, 160),
+    alternates: { canonical: `${siteUrl}/company/${id}` },
     openGraph: {
-      title: `${name} - 会社概要・企業情報 | GBase GTM`,
+      title: `${name}${locSuffix} - 会社概要・企業情報 | GBase GTM`,
       description: desc.slice(0, 120),
       type: 'website',
       locale: 'ja_JP',

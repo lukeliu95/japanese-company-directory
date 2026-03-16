@@ -13,6 +13,7 @@ interface BreadcrumbProps {
 export default function Breadcrumb({ items }: BreadcrumbProps) {
   if (items.length === 0) return null;
 
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://example.com';
   const jsonLdData = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
@@ -20,7 +21,7 @@ export default function Breadcrumb({ items }: BreadcrumbProps) {
       "@type": "ListItem",
       position: index + 1,
       name: item.label,
-      ...(item.href ? { item: item.href } : {}),
+      ...(item.href ? { item: item.href.startsWith('http') ? item.href : `${siteUrl}${item.href}` } : {}),
     })),
   };
 

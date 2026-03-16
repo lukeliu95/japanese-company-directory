@@ -60,7 +60,7 @@ export async function GET(
 
   // Fetch company IDs for this batch
   const result = await db.execute({
-    sql: "SELECT company_id FROM companies WHERE company_name IS NOT NULL AND company_name != '' LIMIT ? OFFSET ?",
+    sql: "SELECT company_id, last_updated FROM companies WHERE company_name IS NOT NULL AND company_name != '' LIMIT ? OFFSET ?",
     args: [BATCH_SIZE, offset],
   });
 
@@ -68,9 +68,14 @@ export async function GET(
 
   for (const row of result.rows) {
     const companyId = row.company_id as string;
+    const lastMod = row.last_updated as string | null;
+    // Convert "2025年05月12日" to "2025-05-12" format
+    const lastModISO = lastMod?.match(/(\d{4})年(\d{2})月(\d{2})日/)
+      ? `${RegExp.$1}-${RegExp.$2}-${RegExp.$3}`
+      : null;
     urls.push(
       `  <url>
-    <loc>${escapeXml(baseUrl)}/company/${escapeXml(companyId)}</loc>
+    <loc>${escapeXml(baseUrl)}/company/${escapeXml(companyId)}</loc>${lastModISO ? `\n    <lastmod>${lastModISO}</lastmod>` : ''}
     <changefreq>monthly</changefreq>
     <priority>0.4</priority>
   </url>`,

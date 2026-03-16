@@ -18,8 +18,8 @@ import Pagination from '@/components/Pagination';
 import Breadcrumb from '@/components/Breadcrumb';
 import IndustryList from '@/components/IndustryList';
 import JsonLd from '@/components/JsonLd';
+import { cityMeta, crossMeta } from '@/lib/seo';
 
-export const dynamic = 'force-dynamic';
 export const revalidate = 86400;
 
 interface PageProps {
@@ -67,13 +67,10 @@ export async function generateMetadata({
 
   if (pageType.type === 'city') {
     const cityName = pageType.city.name_ja;
-    const title =
-      page > 1
-        ? `${prefectureName}${cityName}の企業一覧 (${page}ページ目)`
-        : `${prefectureName}${cityName}の企業一覧`;
+    const meta = cityMeta(prefectureName, cityName, pageType.city.company_count);
     return {
-      title,
-      description: `${prefectureName}${cityName}に所在する企業の一覧です。${pageType.city.company_count.toLocaleString()}社の企業情報を掲載。`,
+      title: page > 1 ? `${prefectureName}${cityName}の企業一覧 (${page}ページ目)` : meta.title,
+      description: meta.description,
       ...(page > 1 ? { robots: { index: false, follow: true } } : {}),
       alternates: { canonical: `/${prefecture}/${encodeURIComponent(sub)}` },
     };
@@ -81,13 +78,11 @@ export async function generateMetadata({
 
   // Cross page
   const industryName = INDUSTRY_BY_SLUG.get(sub) ?? sub;
-  const title =
-    page > 1
-      ? `${prefectureName}の${industryName} (${page}ページ目)`
-      : `${prefectureName}の${industryName}`;
+  const result = await getCompaniesByPrefectureAndIndustry(prefecture, sub, 1);
+  const meta = crossMeta(prefectureName, industryName, result.total);
   return {
-    title,
-    description: `${prefectureName}にある${industryName}の企業一覧です。`,
+    title: page > 1 ? `${prefectureName}の${industryName}企業一覧 (${page}ページ目)` : meta.title,
+    description: meta.description,
     ...(page > 1 ? { robots: { index: false, follow: true } } : {}),
     alternates: { canonical: `/${prefecture}/${encodeURIComponent(sub)}` },
   };
