@@ -8,6 +8,7 @@ function createPool() {
     password: process.env.MYSQL_PASSWORD ?? 'Qiang3Mi4Ma3!2o26',
     database: process.env.MYSQL_DATABASE ?? 'gtm_raw_core',
     charset: 'utf8mb4',
+    ssl: {},
     waitForConnections: true,
     connectionLimit: 5,
     queueLimit: 0,

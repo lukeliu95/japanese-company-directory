@@ -42,6 +42,8 @@ export interface CompanyListItem {
   established_date: string | null;
   capital: string | null;
   revenue: string | null;
+  listing_status: string | null;
+  office_count: string | null;
 }
 
 export interface Prefecture {

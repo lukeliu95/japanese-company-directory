@@ -102,7 +102,7 @@ export async function getCompaniesByPrefecture(
     ),
     query<CompanyListItem>(
       `SELECT company_id, company_name, location, industry_tags, summary,
-              established_date, capital, revenue
+              established_date, capital, revenue, listing_status, office_count
        FROM ${TABLE}
        WHERE location LIKE ? AND ${HAS_NAME}
        ORDER BY company_name ASC
@@ -133,7 +133,7 @@ export async function getCompaniesByCity(
     ),
     query<CompanyListItem>(
       `SELECT company_id, company_name, location, industry_tags, summary,
-              established_date, capital, revenue
+              established_date, capital, revenue, listing_status, office_count
        FROM ${TABLE}
        WHERE location LIKE ? AND ${HAS_NAME}
        ORDER BY company_name ASC
@@ -162,7 +162,7 @@ export async function getCompaniesByIndustry(
     ),
     query<CompanyListItem>(
       `SELECT company_id, company_name, location, industry_tags, summary,
-              established_date, capital, revenue
+              established_date, capital, revenue, listing_status, office_count
        FROM ${TABLE}
        WHERE ${VALID_JSON_TAGS} AND JSON_SEARCH(industry_tags, 'one', ?) IS NOT NULL AND ${HAS_NAME}
        ORDER BY company_name ASC
@@ -194,7 +194,7 @@ export async function getCompaniesByPrefectureAndIndustry(
     ),
     query<CompanyListItem>(
       `SELECT company_id, company_name, location, industry_tags, summary,
-              established_date, capital, revenue
+              established_date, capital, revenue, listing_status, office_count
        FROM ${TABLE}
        WHERE location LIKE ? AND ${VALID_JSON_TAGS} AND JSON_SEARCH(industry_tags, 'one', ?) IS NOT NULL AND ${HAS_NAME}
        ORDER BY company_name ASC
@@ -395,7 +395,7 @@ export async function searchCompanies(
     ),
     query<CompanyListItem>(
       `SELECT company_id, company_name, location, industry_tags, summary,
-              established_date, capital, revenue
+              established_date, capital, revenue, listing_status, office_count
        FROM ${TABLE}
        WHERE (company_name LIKE ? OR company_name_kana LIKE ? OR summary LIKE ?)
          AND ${HAS_NAME}
@@ -415,7 +415,7 @@ export async function searchCompanies(
 export async function getRecentCompanies(limit: number): Promise<CompanyListItem[]> {
   return query<CompanyListItem>(
     `SELECT company_id, company_name, location, industry_tags, summary,
-            established_date, capital, revenue
+            established_date, capital, revenue, listing_status, office_count
      FROM ${TABLE}
      WHERE ${HAS_NAME}
      ORDER BY last_updated DESC
