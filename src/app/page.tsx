@@ -8,7 +8,9 @@ import IndustryList from '@/components/IndustryList';
 import CompanyTable from '@/components/CompanyTable';
 import JsonLd from '@/components/JsonLd';
 
-export const revalidate = 3600;
+// force-dynamic prevents build-time rendering (DB queries timeout in Vercel build env)
+// unstable_cache in getCachedPrefectures/getCachedIndustries provides query-level caching
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'GBase GTM - 全国100万社の企業情報',
