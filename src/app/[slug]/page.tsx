@@ -13,8 +13,6 @@ import {
   PREFECTURE_SLUGS,
   PREFECTURE_BY_SLUG,
   INDUSTRY_BY_SLUG,
-  PREFECTURES,
-  INDUSTRIES,
 } from '@/lib/slugs';
 import CompanyTable from '@/components/CompanyTable';
 import Pagination from '@/components/Pagination';
@@ -24,13 +22,6 @@ import JsonLd from '@/components/JsonLd';
 import { prefectureMeta, industryMeta } from '@/lib/seo';
 
 export const revalidate = 86400;
-
-export function generateStaticParams() {
-  return [
-    ...PREFECTURES.map((p) => ({ slug: p.slug })),
-    ...INDUSTRIES.map((i) => ({ slug: i.slug })),
-  ];
-}
 
 interface PageProps {
   params: Promise<{ slug: string }>;
