@@ -35,7 +35,7 @@ export async function query<T = Record<string, unknown>>(
   sql: string,
   params: any[] = [],
 ): Promise<T[]> {
-  const [rows] = await pool.execute(sql, params);
+  const [rows] = await pool.query(sql, params);
   return rows as T[];
 }
 
