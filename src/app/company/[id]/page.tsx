@@ -139,7 +139,7 @@ export default async function CompanyDetailPage({ params }: PageProps) {
         '@id': `${siteUrl}/company/${company.company_id}#organization`,
         name: company.company_name,
         ...(company.company_name_en && { alternateName: company.company_name_en }),
-        url: company.page_url ?? `${siteUrl}/company/${company.company_id}`,
+        url: `${siteUrl}/company/${company.company_id}`,
         ...(company.description && { description: company.description.slice(0, 300) }),
         ...(company.address && {
           address: {
@@ -365,8 +365,13 @@ export default async function CompanyDetailPage({ params }: PageProps) {
                 {company.new_grad_hires && (
                   <InfoRow label="新卒採用数" value={company.new_grad_hires} />
                 )}
-                {company.page_url && (
-                  <InfoRow label="詳細ページ" value={company.page_url} isLink />
+                {company.company_name && (
+                  <InfoRow
+                    label="詳細情報"
+                    value="GBaseで詳細を見る →"
+                    href={`https://s.gbase.ai/?q=${encodeURIComponent(company.company_name)}`}
+                    isLink
+                  />
                 )}
               </div>
             </div>
@@ -590,12 +595,14 @@ function InfoRow({
   mono,
   link,
   isLink,
+  href,
 }: {
   label: string;
   value: string | null;
   mono?: boolean;
   link?: { text: string; href: string };
   isLink?: boolean;
+  href?: string;
 }) {
   if (!value) return null;
   return (
@@ -617,7 +624,7 @@ function InfoRow({
         )}
         {isLink ? (
           <a
-            href={value}
+            href={href ?? value}
             target="_blank"
             rel="noopener noreferrer"
             className="text-blue-600 hover:text-blue-800 hover:underline break-all"

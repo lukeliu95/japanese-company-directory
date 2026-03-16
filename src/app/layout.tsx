@@ -14,10 +14,10 @@ const notoSansJP = Noto_Sans_JP({
 export const metadata: Metadata = {
   title: {
     template: '%s | GBase GTM',
-    default: 'GBase GTM - 全国90万社の企業情報',
+    default: 'GBase GTM - 全国100万社の企業情報',
   },
   description:
-    '日本全国約90万社の企業情報を網羅。都道府県・業界別に企業を検索できる日本最大級の企業データベースです。',
+    '日本全国約100万社の企業情報を網羅。都道府県・業界別に企業を検索できる日本最大級の企業データベースです。',
 };
 
 export default function RootLayout({

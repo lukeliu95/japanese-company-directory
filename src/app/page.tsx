@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
-import { getAllPrefectures, getAllIndustries, getRecentCompanies } from '@/lib/queries';
+import Link from 'next/link';
+import { getCachedPrefectures, getCachedIndustries, getCachedRecentCompanies } from '@/lib/queries';
 import { PREFECTURE_BY_SLUG } from '@/lib/slugs';
 import SearchBox from '@/components/SearchBox';
 import PrefectureGrid from '@/components/PrefectureGrid';
@@ -11,16 +12,16 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 86400;
 
 export const metadata: Metadata = {
-  title: 'GBase GTM - 全国90万社の企業情報',
+  title: 'GBase GTM - 全国100万社の企業情報',
   description:
-    '日本全国約90万社の企業情報を都道府県・業界別に検索。会社概要、所在地、設立年、資本金などの企業データを無料で閲覧できます。',
+    '日本全国約100万社の企業情報を都道府県・業界別に検索。会社概要、所在地、設立年、資本金などの企業データを無料で閲覧できます。',
 };
 
 export default async function HomePage() {
   const [prefectures, industries, recentCompanies] = await Promise.all([
-    getAllPrefectures(),
-    getAllIndustries(),
-    getRecentCompanies(10),
+    getCachedPrefectures(),
+    getCachedIndustries(),
+    getCachedRecentCompanies(10),
   ]);
 
   // Resolve prefecture names from slug lookups
@@ -36,7 +37,7 @@ export default async function HomePage() {
     '@type': 'WebSite',
     name: 'GBase GTM',
     url: siteUrl,
-    description: '日本全国約90万社の企業情報を網羅した企業データベース',
+    description: '日本全国約100万社の企業情報を網羅した企業データベース',
     potentialAction: {
       '@type': 'SearchAction',
       target: {
@@ -58,9 +59,32 @@ export default async function HomePage() {
             日本全国の企業情報データベース
           </h1>
           <p className="mb-8 text-base text-slate-600 sm:text-lg">
-            全国約90万社の企業情報を都道府県・業界別に検索
+            全国約100万社の企業情報を都道府県・業界別に検索
           </p>
           <SearchBox size="lg" />
+
+          {/* Popular search quick-links */}
+          <div className="mt-6 flex flex-wrap justify-center gap-2">
+            <span className="text-xs text-slate-400 self-center mr-1">人気の検索：</span>
+            {[
+              { label: '東京都', href: '/tokyo' },
+              { label: '大阪府', href: '/osaka' },
+              { label: '愛知県', href: '/aichi' },
+              { label: 'IT業界', href: '/it' },
+              { label: '建設業界', href: '/kensetsu' },
+              { label: '製造業界', href: '/seizou' },
+              { label: '不動産', href: '/fudousan' },
+              { label: '医療・福祉', href: '/iryo-fukushi' },
+            ].map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-600 transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700"
+              >
+                {item.label}
+              </Link>
+            ))}
+          </div>
         </div>
       </section>
 

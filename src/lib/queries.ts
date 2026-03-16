@@ -1,3 +1,4 @@
+import { unstable_cache } from 'next/cache';
 import { query } from '@/lib/db';
 import {
   PREFECTURES,
@@ -423,3 +424,28 @@ export async function getRecentCompanies(limit: number): Promise<CompanyListItem
     [limit],
   );
 }
+
+// ---------------------------------------------------------------------------
+// Cached versions for homepage (avoid full-table-scan on every SSR request)
+// ---------------------------------------------------------------------------
+
+/** Cached prefecture list — revalidates every 24 h. */
+export const getCachedPrefectures = unstable_cache(
+  getAllPrefectures,
+  ['all-prefectures'],
+  { revalidate: 86400 },
+);
+
+/** Cached industry list (JSON_TABLE cross-join is expensive) — revalidates every 24 h. */
+export const getCachedIndustries = unstable_cache(
+  getAllIndustries,
+  ['all-industries'],
+  { revalidate: 86400 },
+);
+
+/** Cached recent companies — revalidates every hour. */
+export const getCachedRecentCompanies = unstable_cache(
+  (limit: number) => getRecentCompanies(limit),
+  ['recent-companies'],
+  { revalidate: 3600 },
+);
